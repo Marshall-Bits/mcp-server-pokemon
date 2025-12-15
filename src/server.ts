@@ -1,4 +1,7 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import {
+  McpServer,
+  ResourceTemplate,
+} from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import z from "zod";
 import { readFileSync } from "fs";
@@ -50,13 +53,36 @@ server.registerResource(
     title: "Guia para usar el MCP server",
     mimeType: "text/markdown",
   },
-  async () => { // HANDLER que maneja el recurso a devolver
+  async (uri) => {
+    // HANDLER que maneja el recurso a devolver
     return {
       contents: [
         {
-          uri: "docs://pokemon/guia", 
+          uri: uri.href,
           mimeType: "text/markdown",
           text: guideText,
+        },
+      ],
+    };
+  }
+);
+
+server.registerResource(
+  "ejemplo de pokemon",
+  new ResourceTemplate("docs://pokemon/{pokemon}", { list: undefined }),
+  {
+    title: "Objeto de ejemplo con los datos de un pokemon",
+    description: "Obtenemos el recurso de un pokemon sólo con su nombre",
+    mimeType: "text/plain",
+  },
+  async (uri, { pokemon }) => {
+    const data = await fetchPokemon(pokemon as string);
+    return {
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: "text/plain",
+          text: data,
         },
       ],
     };
