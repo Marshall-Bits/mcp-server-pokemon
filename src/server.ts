@@ -6,6 +6,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import z from "zod";
 import { readFileSync } from "fs";
 import path from "path";
+import { CreateMessageResultSchema } from "@modelcontextprotocol/sdk/types.js";
 
 const guideText = readFileSync(
   path.resolve(process.cwd(), "usage-guide.md"),
@@ -38,6 +39,44 @@ server.registerTool(
   },
   async (params) => {
     const { name } = params;
+    const pokemonData = await fetchPokemon(name);
+    return {
+      content: [{ type: "text", text: pokemonData }],
+    };
+  }
+);
+
+server.registerTool(
+  "consultar-pokemon-random",
+  {
+    title: "Consultar los datos de un pokemon aleatorio",
+    description:
+      "Obtendremos la información del peso y la alutra de un pokemon aleatorio",
+  },
+  async () => {
+    const res = await server.server.request(
+      {
+        method: "sampling/createMessage",
+        params: {
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: "Genera el nombre de un pokemon aleatorio existente. Devuelve solamente el nombre de este pokemon",
+              },
+            },
+          ],
+          maxTokens: 250,
+        },
+      },
+      CreateMessageResultSchema
+    );
+
+    const name =
+      res.content && res.content.type === "text" ? res.content.text : "";
+    console.error("EL NOMBRE ES: ", name);
+
     const pokemonData = await fetchPokemon(name);
     return {
       content: [{ type: "text", text: pokemonData }],
@@ -117,9 +156,9 @@ server.registerPrompt(
     description: "Genera el prompt para crear un nuevo pokemon",
     argsSchema: {
       nameOrId: z.string().describe("El nombre del pokemon a buscar o su id"),
-    }
+    },
   },
-  ({nameOrId}) => {
+  ({ nameOrId }) => {
     return {
       messages: [
         {
