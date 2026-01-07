@@ -7,8 +7,8 @@ import z from "zod";
 import { readFileSync } from "fs";
 import path from "path";
 import { CreateMessageResultSchema } from "@modelcontextprotocol/sdk/types.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import express, { Request, Response } from "express";
 
 const guideText = readFileSync(
   path.resolve(process.cwd(), "usage-guide.md"),
@@ -209,11 +209,40 @@ async function postPokemon(nameOrId: string) {
   }
 }
 
-async function main() {
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined, // stateless
-  });
+// ============ EXPRESS APP PARA VERCEL ============
+const app = express();
+app.use(express.json());
+
+app.post("/mcp", async (req: Request, res: Response) => {
+  try {
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+    
+    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } catch (error) {
+    console.error("Error en /mcp:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/", (_req, res) => {
+  res.json({ status: "ok", name: "pokemon-mcp" });
+});
+
+// Para desarrollo local con STDIO
+async function runStdio() {
+  const transport = new StdioServerTransport();
   await server.connect(transport);
 }
 
-main();
+// Detectar entorno
+if (process.env.VERCEL) {
+  // Vercel usa el export default
+} else if (process.argv.includes("--stdio")) {
+  runStdio();
+}
+
+// Export para Vercel
+export default app;

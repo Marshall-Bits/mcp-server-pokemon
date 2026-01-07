@@ -9,6 +9,8 @@ const zod_1 = __importDefault(require("zod"));
 const fs_1 = require("fs");
 const path_1 = __importDefault(require("path"));
 const types_js_1 = require("@modelcontextprotocol/sdk/types.js");
+const streamableHttp_js_1 = require("@modelcontextprotocol/sdk/server/streamableHttp.js");
+const express_1 = __importDefault(require("express"));
 const guideText = (0, fs_1.readFileSync)(path_1.default.resolve(process.cwd(), "usage-guide.md"), "utf8");
 const server = new mcp_js_1.McpServer({
     name: "hola-mcp",
@@ -151,9 +153,37 @@ async function postPokemon(nameOrId) {
         throw error;
     }
 }
-async function main() {
+// ============ EXPRESS APP PARA VERCEL ============
+const app = (0, express_1.default)();
+app.use(express_1.default.json());
+app.post("/mcp", async (req, res) => {
+    try {
+        const transport = new streamableHttp_js_1.StreamableHTTPServerTransport({
+            sessionIdGenerator: undefined,
+        });
+        await server.connect(transport);
+        await transport.handleRequest(req, res, req.body);
+    }
+    catch (error) {
+        console.error("Error en /mcp:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+app.get("/", (_req, res) => {
+    res.json({ status: "ok", name: "pokemon-mcp" });
+});
+// Para desarrollo local con STDIO
+async function runStdio() {
     const transport = new stdio_js_1.StdioServerTransport();
     await server.connect(transport);
 }
-main();
+// Detectar entorno
+if (process.env.VERCEL) {
+    // Vercel usa el export default
+}
+else if (process.argv.includes("--stdio")) {
+    runStdio();
+}
+// Export para Vercel
+exports.default = app;
 //# sourceMappingURL=server.js.map
