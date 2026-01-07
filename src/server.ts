@@ -7,6 +7,8 @@ import z from "zod";
 import { readFileSync } from "fs";
 import path from "path";
 import { CreateMessageResultSchema } from "@modelcontextprotocol/sdk/types.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
 const guideText = readFileSync(
   path.resolve(process.cwd(), "usage-guide.md"),
@@ -208,7 +210,9 @@ async function postPokemon(nameOrId: string) {
 }
 
 async function main() {
-  const transport = new StdioServerTransport();
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined, // stateless
+  });
   await server.connect(transport);
 }
 
