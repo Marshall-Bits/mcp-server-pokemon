@@ -237,10 +237,8 @@ async function runStdio() {
   await server.connect(transport);
 }
 
-// Detectar entorno
-if (process.env.VERCEL) {
-  // Vercel usa el export default
-} else if (process.argv.includes("--stdio")) {
+// detectar el entorno
+if (!process.env.VERCEL && process.argv.includes("--stdio")) {
   runStdio();
 }
 
